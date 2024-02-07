@@ -1,7 +1,6 @@
-
-
 import numpy as np
 import statsmodels.api as sm
+from numpy.typing import ArrayLike
 
 try:
     import piecewise_regression.r_squared_calc as r_squared_calc
@@ -17,10 +16,21 @@ class ModelSelection:
     """
 
     def __init__(
-            self, xx, yy, max_breakpoints=10, n_boot=100,
-            max_iterations=30, tolerance=10**-5,
-            min_distance_between_breakpoints=0.01, min_distance_to_edge=0.02,
-            verbose=True):
+        self,
+        xx,
+        yy,
+        use_odr: bool = False,
+        sxx: ArrayLike = [],
+        syy: ArrayLike = [],
+        fit_params_guess: ArrayLike = [],
+        max_breakpoints=10,
+        n_boot=100,
+        max_iterations=30,
+        tolerance=10**-5,
+        min_distance_between_breakpoints=0.01,
+        min_distance_to_edge=0.02,
+        verbose=True,
+    ):
 
         # The actual fit model objects
         self.models = []
@@ -38,12 +48,23 @@ class ModelSelection:
         for k in range(1, max_breakpoints + 1):
             if verbose:
                 print("Running fit with n_breakpoint = {} . . ".format(k))
+            if use_odr:
+                raise ValueError("Using odr is currently not implemented")
             bootstrapped_fit = Fit(
-                xx, yy, n_breakpoints=k, verbose=False,
-                n_boot=n_boot, max_iterations=max_iterations,
+                xx=xx,
+                yy=yy,
+                use_odr=use_odr,
+                sxx=sxx,
+                syy=syy,
+                fit_params_guess=fit_params_guess,
+                n_breakpoints=k,
+                verbose=False,
+                n_boot=n_boot,
+                max_iterations=max_iterations,
                 tolerance=tolerance,
                 min_distance_between_breakpoints=min_d_between_bps,
-                min_distance_to_edge=min_distance_to_edge)
+                min_distance_to_edge=min_distance_to_edge,
+            )
             fit_summary = bootstrapped_fit.get_results()
             fit_summary["n_breakpoints"] = k
             self.model_summaries.append(fit_summary)
@@ -61,7 +82,8 @@ class ModelSelection:
 
         table_header_template = "{:<15} {:>12} {:>12} {:>12} \n"
         table_header = table_header_template.format(
-            "n_breakpoints", "BIC", "converged", "RSS")
+            "n_breakpoints", "BIC", "converged", "RSS"
+        )
         table_row_template = "{:<15} {:>12.5} {:>12} {:>12.5} \n"
 
         table_contents = header
@@ -74,14 +96,18 @@ class ModelSelection:
 
             if model_summary["converged"]:
                 model_row = table_row_template.format(
-                    model_summary["n_breakpoints"], 
+                    model_summary["n_breakpoints"],
                     model_summary["bic"],
-                    str(model_summary["converged"]), 
-                    model_summary["rss"])
+                    str(model_summary["converged"]),
+                    model_summary["rss"],
+                )
             else:
                 model_row = table_row_template.format(
-                    model_summary["n_breakpoints"], "", 
-                    str(model_summary["converged"]), "")
+                    model_summary["n_breakpoints"],
+                    "",
+                    str(model_summary["converged"]),
+                    "",
+                )
 
             table_contents += model_row
 
@@ -93,7 +119,7 @@ class ModelSelection:
 
         Z = np.array([xx])
         Z = Z.T
-        Z = sm.add_constant(Z, has_constant='add')
+        Z = sm.add_constant(Z, has_constant="add")
         # Basic OLS fit
         results = sm.OLS(endog=np.array(yy), exog=Z).fit()
 
@@ -101,8 +127,7 @@ class ModelSelection:
         ff = [(results.params[0] + results.params[1] * x) for x in xx]
 
         # Get Rss
-        rss, tss, r_2, adjusted_r_2 = r_squared_calc.get_r_squared(
-            yy, ff, n_params=2)
+        rss, tss, r_2, adjusted_r_2 = r_squared_calc.get_r_squared(yy, ff, n_params=2)
 
         # Calcualte BIC
         n = len(xx)  # No. data points
@@ -114,7 +139,7 @@ class ModelSelection:
             "n_breakpoints": 0,
             "estimates": {},
             "converged": True,
-            "rss": rss
+            "rss": rss,
         }
 
         fit_data["estimates"]["const"] = results.params[0]
@@ -124,7 +149,5 @@ class ModelSelection:
 
 
 if __name__ == "__main__":
-    
+
     pass
-
-
