@@ -189,6 +189,7 @@ class NextBreakpoints:
         results = odr_ODR.run()
         self.raw_params = results.beta
         self.covariance_matrix = results.cov_beta
+        self.covariance_matrix = results.res_var * self.covariance_matrix
 
         # First two params are a and c in the line equation
         # Beta hats are the next group of params, same length as breakpoints
