@@ -948,13 +948,15 @@ class Fit:
 
             # Get some new breakpoint values from a bootstrapped fit
             # Non parametric bootstrap by resampling from data
-            xx_boot, yy_boot = self.bootstrap_data(self.xx, self.yy)
+            xx_boot, yy_boot, sxx_boot, syy_boot = self.bootstrap_data(
+                xx=self.xx, yy=self.yy, sxx=self.sxx, syy=self.syy
+            )
             bootstrap_fit = Muggeo(
                 xx=xx_boot,
                 yy=yy_boot,
                 use_odr=self.use_odr,
-                sxx=self.sxx,
-                syy=self.syy,
+                sxx=sxx_boot,
+                syy=syy_boot,
                 fit_params_guess=self.fit_params_guess,
                 start_values=best_bps,
                 n_breakpoints=self.n_breakpoints,
@@ -1005,7 +1007,7 @@ class Fit:
                 else:
                     self.best_muggeo = next_muggeo
 
-    def bootstrap_data(self, xx, yy):
+    def bootstrap_data(self, xx, yy, sxx, syy):
         """
         Non parametric bootstrap, randomly sample data points with replacement.
         Return bootstrapped data of same length as oriignal data.
@@ -1016,6 +1018,12 @@ class Fit:
         :param yy: Data series in y-axis.
         :type yy: list of floats
 
+        :param sxx: Standard error on the independent data.
+        :type xx: list or NDArray of floats
+
+        :param syy: Standard error on the dependent data.
+        :type yy: list or NDArray of floats
+
         """
         n = len(xx)
         # Get bootstrap samples as array index locations
@@ -1023,7 +1031,13 @@ class Fit:
 
         xx_boot = xx[boot_indices]
         yy_boot = yy[boot_indices]
-        return xx_boot, yy_boot
+        if self.use_odr:
+            sxx_boot = sxx[boot_indices]
+            syy_boot = syy[boot_indices]
+        else:
+            sxx_boot = sxx
+            syy_boot = syy
+        return xx_boot, yy_boot, sxx_boot, syy_boot
 
     def plot_data(self, **kwargs):
         """
