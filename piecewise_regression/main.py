@@ -158,6 +158,11 @@ class NextBreakpoints:
         self.next_breakpoints = self.current_breakpoints - gamma_hats / beta_hats
 
     def breakpoint_fit_use_odr(self):
+        """
+        Fit the linear approximation using odr given the current breakpoint guesses.
+        Sets the next breakpoints and the params from the fit. 
+        The params are of the form [c, a, beta_hats, gamma_hats]
+        """
 
         def plf(fit_params: ArrayLike, xx: ArrayLike) -> ArrayLike:
             """Implementation of the piece-wise linear function
