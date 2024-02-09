@@ -191,6 +191,7 @@ class NextBreakpoints:
         odr_ODR = scipy.odr.ODR(
             data=self.odr_data, model=odr_model, beta0=self.fit_params_guess
         )
+        odr_ODR.set_job(deriv=1)
         results = odr_ODR.run()
         self.raw_params = results.beta
         self.covariance_matrix = results.cov_beta
